@@ -2,71 +2,157 @@
 
 ## Objective
 
-Understand Pods as the smallest deployable unit in Kubernetes. This lab teaches how to create a standalone Pod, inspect its lifecycle, and troubleshoot it with `kubectl`.
-
-## Theory
-
-A Pod is a wrapper around one or more tightly coupled containers that share the same network namespace, IP address, and optional storage volumes. Pods are scheduled onto nodes as a single unit. A standalone Pod is useful for learning, debugging, or short-lived tasks, but long-running applications are usually managed by higher-level controllers such as Deployments. Pod lifecycle states such as `Pending`, `Running`, `Succeeded`, and `Failed` help explain what the scheduler and kubelet are doing.
+Understand what a Pod is, create one imperatively and declaratively, and use `kubectl` to inspect logs, status, and events.
 
 ## Prerequisites
 
 - A running Kubernetes cluster
-- `kubectl`
-- Basic familiarity with containers and images
+- `kubectl` configured correctly
+- The `learning` namespace from Lab 02
+
+## Key Concepts
+
+- A Pod is the smallest deployable unit in Kubernetes.
+- A Pod can contain one or more containers that share network and storage resources.
+- Standalone Pods are useful for learning and debugging, but controllers such as Deployments are better for long-running applications.
+- `kubectl describe`, `kubectl logs`, and `kubectl exec` are core troubleshooting commands for Pod work.
 
 ## Lab Steps
 
-1. Create a namespace for the lab:
-   - `kubectl create namespace pods-lab`
-2. Create a standalone Pod:
-   - `kubectl run demo-pod --image=nginx:1.25 --restart=Never -n pods-lab`
-3. Watch the Pod move through its lifecycle:
-   - `kubectl get pods -n pods-lab -w`
-4. Inspect details and events:
-   - `kubectl describe pod demo-pod -n pods-lab`
-5. View logs and access the container:
-   - `kubectl logs demo-pod -n pods-lab`
-   - `kubectl exec -it demo-pod -n pods-lab -- sh`
-6. Delete and recreate the Pod to observe that it is not self-healing without a controller:
-   - `kubectl delete pod demo-pod -n pods-lab`
+1. Create a Pod imperatively.
+   - What we are doing: Start a simple nginx Pod directly from the CLI.
+   - Command:
+     ```bash
+     kubectl run nginx-pod --image=nginx:1.25 --restart=Never -n learning --labels="app=nginx,tier=frontend"
+     ```
+   - Short explanation: Creates a standalone Pod named `nginx-pod` in the `learning` namespace.
+
+2. Inspect the Pod status.
+   - What we are doing: Watch the Pod move into the `Running` state.
+   - Command:
+     ```bash
+     kubectl get pods -n learning -o wide
+     ```
+   - Short explanation: Lists the Pod, its IP, node placement, and current state.
+
+3. Delete the imperatively created Pod.
+   - What we are doing: Remove the first Pod so the YAML-based version uses the same name cleanly.
+   - Command:
+     ```bash
+     kubectl delete pod nginx-pod -n learning
+     ```
+   - Short explanation: Deletes the standalone Pod from the namespace.
+
+4. Validate the Pod manifest.
+   - What we are doing: Check the reusable manifest before applying it.
+   - Command:
+     ```bash
+     kubectl apply --dry-run=client -f manifests/pods/nginx-pod.yaml
+     ```
+   - Short explanation: Verifies the YAML is valid from the client side.
+
+5. Create the Pod from YAML.
+   - What we are doing: Apply the reusable manifest stored in `manifests/pods/nginx-pod.yaml`.
+   - Command:
+     ```bash
+     kubectl apply -f manifests/pods/nginx-pod.yaml
+     ```
+   - Short explanation: Creates the nginx Pod declaratively in the `learning` namespace.
+
+6. Read container logs.
+   - What we are doing: Confirm the container started cleanly.
+   - Command:
+     ```bash
+     kubectl logs nginx-pod -n learning
+     ```
+   - Short explanation: Prints the container log stream for the Pod.
+
+7. Open a shell in the container.
+   - What we are doing: Inspect the running container from inside.
+   - Command:
+     ```bash
+     kubectl exec -it nginx-pod -n learning -- sh
+     ```
+   - Short explanation: Starts an interactive shell inside the container.
+
+8. Describe the Pod events.
+   - What we are doing: Review scheduling and startup details.
+   - Command:
+     ```bash
+     kubectl describe pod nginx-pod -n learning
+     ```
+   - Short explanation: Shows labels, image details, status, mounts, and event history.
+
+9. Delete the Pod.
+   - What we are doing: Clean up the standalone Pod at the end of the lab.
+   - Command:
+     ```bash
+     kubectl delete -f manifests/pods/nginx-pod.yaml
+     ```
+   - Short explanation: Deletes the Pod using the same manifest that created it.
+
+## YAML Examples
+
+Main manifest for this lab:
+
+- `manifests/pods/nginx-pod.yaml`
+
+Small example:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  namespace: learning
+```
 
 ## Verification
 
-- `kubectl get pod demo-pod -n pods-lab -o wide`
-- `kubectl describe pod demo-pod -n pods-lab`
-- `kubectl logs demo-pod -n pods-lab`
-- `kubectl exec demo-pod -n pods-lab -- hostname`
+```bash
+kubectl get pods -n learning -o wide
+kubectl describe pod nginx-pod -n learning
+kubectl logs nginx-pod -n learning
+kubectl exec nginx-pod -n learning -- hostname
+```
 
-## What I Learned
+## Expected Output
 
-Expected outcomes after completing this lab:
+- `kubectl get pods -n learning` should show `nginx-pod` in `Running` state.
+- `kubectl logs nginx-pod -n learning` should show the nginx startup log output.
+- `kubectl exec nginx-pod -n learning -- hostname` should return the container hostname.
+- `kubectl describe pod nginx-pod -n learning` should show scheduling and startup events.
 
-- I can explain what a Pod is and why Kubernetes schedules it as a unit.
-- I can inspect Pod events, logs, and status fields during troubleshooting.
-- I understand why standalone Pods are usually replaced by controllers for real workloads.
+## Troubleshooting
+
+- Pod stays `Pending`:
+  Check `kubectl describe pod nginx-pod -n learning` for scheduling issues.
+- Image pull errors:
+  Look for `ErrImagePull` or `ImagePullBackOff` in the Pod events.
+- `kubectl exec` fails:
+  Wait until the Pod is running and make sure you use the correct namespace.
+- No logs appear:
+  Confirm the container has started and the Pod name matches the manifest.
+
+## Cleanup
+
+```bash
+kubectl delete -f manifests/pods/nginx-pod.yaml
+```
+
+## Key Takeaways
+
+- A Pod is the basic execution unit in Kubernetes.
+- Standalone Pods are good for learning but not ideal for managed applications.
+- `describe`, `logs`, and `exec` are the fastest first checks when a Pod is not behaving as expected.
 
 ## Interview Questions
 
 1. What is a Pod in Kubernetes?
-   - A Pod is the smallest deployable unit in Kubernetes that encapsulates one or more containers sharing the same network and storage.
-2. Why do containers inside the same Pod share a network namespace?
-   - So they can communicate using `localhost` and share the same IP address and ports.
-3. What is the difference between a Pod and a container?
-   - A container runs an application, while a Pod is a Kubernetes object that hosts one or more containers and provides shared networking and storage.
-4. What happens if a standalone Pod is deleted?
-   - It is permanently removed and is **not** recreated automatically because no controller manages it.
-5. Which `kubectl` commands are most useful when a Pod is not starting?
-   - `kubectl get pods`, `kubectl describe pod <pod-name>`, and `kubectl logs <pod-name>`.
-
-## Common Mistakes
-
-- Using standalone Pods for applications that should be controller-managed
-- Assuming a deleted Pod will be recreated automatically
-- Ignoring the `Events` section in `kubectl describe`
-- Confusing container logs with Pod status information
-
-## References
-
-- Pods: https://kubernetes.io/docs/concepts/workloads/pods/
-- Pod Lifecycle: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
-- Debug Running Pods: https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/
+   It is the smallest deployable unit that runs one or more containers.
+2. Why are standalone Pods not ideal for most applications?
+   They are not self-healing or automatically recreated if deleted.
+3. What command helps you inspect Pod events and scheduling details?
+   `kubectl describe pod <pod-name> -n <namespace>`.
+4. What is the difference between `kubectl logs` and `kubectl exec`?
+   `logs` reads container output, while `exec` runs a command inside the container.
