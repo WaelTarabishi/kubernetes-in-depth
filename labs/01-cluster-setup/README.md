@@ -2,74 +2,160 @@
 
 ## Objective
 
-Set up a local Kubernetes cluster that can be reused for the rest of this learning repository. This lab teaches how to install the basic tooling, create a disposable cluster, and confirm that `kubectl` is talking to the correct environment.
-
-## Theory
-
-Kubernetes runs workloads on a cluster made up of control plane components and worker nodes. The control plane stores cluster state and coordinates scheduling, while worker nodes run the actual containers. In a learning environment, a local cluster created with `kind` or Minikube is useful because it is fast to recreate, cheap to run, and safe to break. `kubectl` connects to clusters through a kubeconfig file, so understanding contexts early prevents accidental commands against the wrong cluster.
+Set up a local Kubernetes cluster for the rest of the labs and verify that `kubectl` is pointed at the correct environment.
 
 ## Prerequisites
 
-- A machine with virtualization or container support and at least 4 GB of available memory
-- A container runtime such as Docker Desktop, Docker Engine, or Podman
 - `kubectl` installed and available in `PATH`
-- A local cluster tool such as `kind` or Minikube
-- Basic terminal familiarity
+- One local cluster tool: `kind` or Minikube
+- A container runtime such as Docker Desktop, Docker Engine, or Podman
+- Enough CPU and memory to run a local cluster
+- Basic terminal knowledge
+
+## Key Concepts
+
+- A Kubernetes cluster contains control plane components and one or more worker nodes.
+- `kubectl` talks to a cluster by reading kubeconfig contexts.
+- A local cluster is useful for learning because it is easy to create, break, and recreate.
+- `kind` runs Kubernetes nodes as containers, while Minikube creates a local VM or container-based cluster depending on the driver.
 
 ## Lab Steps
 
-1. Install and verify the required tools:
-   - `kubectl version --client`
-   - `kind version` or `minikube version`
-2. Create a local cluster. A simple `kind` example is:
-   - `kind create cluster --name k8s-indepth`
-3. Confirm that your current kubeconfig context points to the new cluster:
-   - `kubectl config current-context`
-4. Inspect the cluster and system workloads:
-   - `kubectl cluster-info`
-   - `kubectl get nodes -o wide`
-   - `kubectl get pods -n kube-system`
-5. Record how to clean up the environment when finished:
-   - `kind delete cluster --name k8s-indepth`
+1. Check that `kubectl` is installed.
+   - What we are doing: Confirm the Kubernetes CLI is available before creating a cluster.
+   - Command:
+     ```bash
+     kubectl version --client
+     ```
+   - Short explanation: Shows the installed client version without requiring a working cluster connection.
+
+2. Check your local cluster tool.
+   - What we are doing: Verify whether you are using `kind` or Minikube.
+   - Command:
+     ```bash
+     kind version
+     ```
+     or
+     ```bash
+     minikube version
+     ```
+   - Short explanation: Confirms the cluster bootstrap tool is installed and ready.
+
+3. Create a local cluster.
+   - What we are doing: Start a disposable Kubernetes cluster named `k8s-indepth`.
+   - Command:
+     ```bash
+     kind create cluster --name k8s-indepth
+     ```
+     or
+     ```bash
+     minikube start
+     ```
+   - Short explanation: Creates a local Kubernetes control plane and worker node environment for practice.
+
+4. Verify cluster connectivity.
+   - What we are doing: Confirm `kubectl` can talk to the cluster API server.
+   - Command:
+     ```bash
+     kubectl cluster-info
+     ```
+   - Short explanation: Prints the cluster control plane endpoints that `kubectl` is currently using.
+
+5. Verify the nodes.
+   - What we are doing: Check that the cluster node is ready.
+   - Command:
+     ```bash
+     kubectl get nodes -o wide
+     ```
+   - Short explanation: Lists the nodes and shows whether they are in the `Ready` state.
+
+6. Check the active kubeconfig context.
+   - What we are doing: Make sure future commands target the correct cluster.
+   - Command:
+     ```bash
+     kubectl config current-context
+     ```
+   - Short explanation: Prints the active kubeconfig context currently used by `kubectl`.
+
+7. Inspect system Pods.
+   - What we are doing: Verify that cluster system components are running.
+   - Command:
+     ```bash
+     kubectl get pods -n kube-system
+     ```
+   - Short explanation: Shows core services such as DNS and networking components that support the cluster.
+
+8. Delete the cluster when finished.
+   - What we are doing: Clean up the local cluster after testing.
+   - Command:
+     ```bash
+     kind delete cluster --name k8s-indepth
+     ```
+     or
+     ```bash
+     minikube delete
+     ```
+   - Short explanation: Removes the local learning cluster and frees local resources.
+
+## YAML Examples
+
+This lab does not require Kubernetes manifest files because cluster setup is done with local tools such as `kind` or Minikube rather than `kubectl apply -f`.
 
 ## Verification
 
-- `kubectl cluster-info`
-- `kubectl get nodes -o wide`
-- `kubectl get pods -n kube-system`
-- `kubectl config current-context`
+```bash
+kubectl version --client
+kubectl cluster-info
+kubectl get nodes -o wide
+kubectl config current-context
+kubectl get pods -n kube-system
+```
 
-## What I Learned
+## Expected Output
 
-Expected outcomes after completing this lab:
+- `kubectl version --client` should print a client version.
+- `kubectl get nodes -o wide` should show at least one node in the `Ready` state.
+- `kubectl config current-context` should show the local cluster context such as `kind-k8s-indepth` or `minikube`.
+- `kubectl get pods -n kube-system` should show system Pods such as CoreDNS and the network plugin.
 
-- I can explain the difference between the control plane and worker nodes.
-- I can create and remove a local Kubernetes cluster safely.
-- I can verify that `kubectl` is pointed at the intended cluster before continuing with other labs.
+## Troubleshooting
+
+- `kubectl` not found:
+  Install `kubectl` and make sure it is in `PATH`.
+- `kind` or `minikube` command not found:
+  Install the missing local cluster tool before continuing.
+- Cluster creation fails:
+  Check that Docker Desktop, Docker Engine, or the Minikube driver is running.
+- Nodes stay `NotReady`:
+  Inspect `kubectl get pods -n kube-system` and `kubectl describe node <node-name>` for DNS or network plugin issues.
+- Wrong cluster context:
+  Run `kubectl config get-contexts` and switch with `kubectl config use-context <context-name>`.
+
+## Cleanup
+
+```bash
+kind delete cluster --name k8s-indepth
+```
+
+Or, if you used Minikube:
+
+```bash
+minikube delete
+```
+
+## Key Takeaways
+
+- `kubectl` depends on kubeconfig context, so context checks should become a habit.
+- A local cluster is enough for learning core Kubernetes workflows.
+- Verifying nodes and system Pods is the fastest basic health check after cluster creation.
 
 ## Interview Questions
 
-1. What is the role of the Kubernetes control plane?
-   - It manages the cluster by maintaining the desired state, scheduling workloads, and coordinating all Kubernetes operations.
-2. What is stored in a kubeconfig file?
-   - Cluster information, user credentials, contexts, and the default cluster that `kubectl` connects to.
-3. Why is a local cluster useful for learning Kubernetes?
-   - It provides a safe, free environment to practice Kubernetes concepts without using cloud resources or incurring costs.
-4. What is the difference between a node and a Pod?
-   - A node is a machine (physical or virtual) that runs workloads, while a Pod is the smallest deployable unit in Kubernetes that contains one or more containers.
-5. How do you confirm that `kubectl` is targeting the correct cluster?
-   - Run `kubectl config current-context` to check the active context, and `kubectl cluster-info` or `kubectl get nodes` to verify the connected cluster.
-
-## Common Mistakes
-
-- Running `kubectl` commands without checking the active context
-- Treating a local cluster as if it behaves exactly like a cloud-managed cluster
-- Ignoring system Pods in `kube-system` when troubleshooting startup issues
-- Deleting the cluster before exporting or saving any useful configuration notes
-
-## References
-
-- Kubernetes Overview: https://kubernetes.io/docs/concepts/overview/
-- Install and Set Up `kubectl`: https://kubernetes.io/docs/tasks/tools/
-- kind Documentation: https://kind.sigs.k8s.io/
-- Minikube Documentation: https://minikube.sigs.k8s.io/docs/
+1. What does `kubectl config current-context` show?
+   It shows which kubeconfig context `kubectl` is currently using.
+2. Why is a local cluster useful for learning Kubernetes?
+   It gives you a safe environment to practice without using cloud infrastructure.
+3. What does `kubectl get nodes` help you verify?
+   It confirms that cluster nodes exist and whether they are ready to run workloads.
+4. What is the difference between `kind` and Minikube at a high level?
+   `kind` runs Kubernetes nodes as containers, while Minikube creates a local cluster using a driver such as Docker or a VM.
