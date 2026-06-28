@@ -56,9 +56,10 @@ Learn how a ReplicaSet maintains the desired number of Pod replicas and why labe
    - What we are doing: Demonstrate self-healing behavior.
    - Command:
      ```bash
-     kubectl delete pod -l app=nginx-replicaset -n learning
+     kubectl get pods -n learning -l app=nginx-replicaset
+     kubectl delete pod <pod-name> -n learning
      ```
-   - Short explanation: Removes one or more managed Pods so the ReplicaSet creates replacements.
+   - Short explanation: Removes one managed Pod so the ReplicaSet creates a replacement automatically.
 
 6. Scale the ReplicaSet.
    - What we are doing: Change the desired replica count from the CLI.
