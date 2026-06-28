@@ -50,10 +50,15 @@ Expected outcomes after completing this lab:
 ## Interview Questions
 
 1. What is the role of the Kubernetes control plane?
+   - It manages the cluster by maintaining the desired state, scheduling workloads, and coordinating all Kubernetes operations.
 2. What is stored in a kubeconfig file?
+   - Cluster information, user credentials, contexts, and the default cluster that `kubectl` connects to.
 3. Why is a local cluster useful for learning Kubernetes?
+   - It provides a safe, free environment to practice Kubernetes concepts without using cloud resources or incurring costs.
 4. What is the difference between a node and a Pod?
+   - A node is a machine (physical or virtual) that runs workloads, while a Pod is the smallest deployable unit in Kubernetes that contains one or more containers.
 5. How do you confirm that `kubectl` is targeting the correct cluster?
+   - Run `kubectl config current-context` to check the active context, and `kubectl cluster-info` or `kubectl get nodes` to verify the connected cluster.
 
 ## Common Mistakes
 
