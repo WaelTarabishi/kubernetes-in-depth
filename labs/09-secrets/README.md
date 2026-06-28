@@ -42,9 +42,16 @@ Secrets are Kubernetes objects intended for sensitive data such as passwords, to
 
 Expected outcomes after completing this lab:
 
-- I can explain when a Secret is more appropriate than a ConfigMap.
-- I understand that base64 encoding does not secure secret data by itself.
-- I can attach Secret data to a workload and verify how it is consumed.
+1. When is a Secret more appropriate than a ConfigMap?
+
+   - Use a Secret for sensitive data such as passwords, API keys, tokens, and certificates. Use a ConfigMap for non-sensitive configuration.
+
+2. Does Base64 encoding secure Secret data?
+
+   - No. Base64 is only an encoding format, not encryption. Anyone can decode it if they have access to the Secret.
+
+3. How can you attach Secret data to a workload and verify it?
+   - Reference the Secret in a Pod or Deployment (for example, as environment variables or a mounted volume), then verify it using `kubectl exec` to inspect the container's environment or mounted files.
 
 ## Interview Questions
 
