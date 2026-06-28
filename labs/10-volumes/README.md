@@ -47,10 +47,21 @@ Expected outcomes after completing this lab:
 ## Interview Questions
 
 1. Why is container filesystem data usually not considered durable?
+   - Data written inside a container's normal writable filesystem is tied to that container's lifecycle. If the container crashes, is stopped, recreated, or rescheduled, Kubernetes can start it again with a clean filesystem state, so files created during the previous run can be lost. Kubernetes documentation describes on-disk files in a container as ephemeral and recommends volumes when data must survive restarts or replacement.
+
 2. What is the difference between `emptyDir` and a `PersistentVolumeClaim`?
+   - `emptyDir` is temporary Pod-level storage. It is created when the Pod is assigned to a node, can be shared by containers in that same Pod, survives container crashes, but is deleted permanently when the Pod is removed from the node.
+   - A `PersistentVolumeClaim` is a request for persistent storage. The PVC asks Kubernetes for storage with a certain size, access mode, and optionally a `StorageClass`; Kubernetes then binds it to a `PersistentVolume`. A PV has a lifecycle independent of any individual Pod.
+
 3. What does a `StorageClass` do?
+   - A `StorageClass` defines a type or "class" of storage that the cluster offers, such as fast SSD, standard disk, encrypted storage, or backup-enabled storage. It tells Kubernetes which provisioner to use and what parameters or reclaim policy to apply when dynamically creating a `PersistentVolume` for a PVC.
+
 4. When is a `PersistentVolume` cluster-scoped?
+   - A `PersistentVolume` is always cluster-scoped in Kubernetes. It is a cluster resource, similar to a node, and is not created inside a namespace. The `PersistentVolumeClaim` is the namespaced object; the PV itself belongs to the cluster and can be bound to a PVC.
+
 5. Why might a Pod remain pending when using a PVC?
+   - A Pod can remain `Pending` if the PVC cannot be bound to usable storage. Common causes include no matching PV, requested size too large, wrong access mode, wrong or missing `StorageClass`, dynamic provisioner failure, or topology and zone mismatch. Kubernetes says PVCs remain unbound indefinitely if no matching volume exists, and Pods use claims only after Kubernetes finds the bound volume.
+   - Another common cause is `StorageClass` `volumeBindingMode`: with `Immediate`, storage may be provisioned without considering where the Pod can run, which can make the Pod unschedulable; with `WaitForFirstConsumer`, binding waits until a Pod uses the PVC so topology can be considered.
 
 ## Common Mistakes
 
