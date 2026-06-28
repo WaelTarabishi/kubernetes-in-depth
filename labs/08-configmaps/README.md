@@ -49,10 +49,26 @@ Expected outcomes after completing this lab:
 ## Interview Questions
 
 1. When should you use a ConfigMap instead of a Secret?
+
+   - Use a ConfigMap for non-sensitive configuration (for example, application settings). Use a Secret for sensitive data such as passwords, API keys, and certificates.
+
 2. How can a Pod consume data from a ConfigMap?
+
+   - A Pod can consume a ConfigMap as:
+     - Environment variables
+     - Mounted files in a volume
+     - Command-line arguments
+
 3. Do environment variables sourced from a ConfigMap update automatically in a running container?
+
+   - No. The Pod must be restarted to pick up the updated environment variables.
+
 4. Why is externalized configuration useful for image reuse?
+
+   - It allows the same container image to be used in different environments (development, staging, production) by changing only the configuration instead of rebuilding the image.
+
 5. What are the operational tradeoffs between environment variables and mounted config files?
+   - Environment variables are simple but require a Pod restart when the ConfigMap changes. Mounted config files can reflect ConfigMap updates without rebuilding the image, although applications may still need to reload the changed files.
 
 ## Common Mistakes
 
