@@ -1,15 +1,42 @@
-# macOS
+# OS metadata
 .DS_Store
+Thumbs.db
+Desktop.ini
 
 # VS Code
 .vscode/
+.history/
 
-# JetBrains
+# JetBrains / IntelliJ
 .idea/
+*.iml
+out/
 
 # Temporary files
 *.tmp
+*.temp
 *.swp
+*.swo
+*~
 
 # Logs
 *.log
+logs/
+
+# Archives and backups
+*.bak
+*.old
+
+# Windows installer and crash artifacts
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# macOS filesystem metadata
+._*
+
+# Local environment files
+.env
+.env.*

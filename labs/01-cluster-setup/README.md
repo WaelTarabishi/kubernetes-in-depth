@@ -1,38 +1,47 @@
-# Lab 01 - Kind Cluster Setup
+# Lab 01 - Cluster Setup
 
 ## Objective
 
-Create a local multi-node Kubernetes cluster using Kind.
+Document how the local Kubernetes cluster is created, configured, and prepared for the rest of the labs.
 
----
+> Placeholder: Add the target local environment, cluster type, and desired outcome.
+
+## Theory
+
+Summarize the concepts needed before creating a cluster.
+
+> Placeholder: Cover local Kubernetes options, control plane basics, worker nodes, contexts, and why a disposable lab cluster is useful.
 
 ## Prerequisites
 
-- Docker Desktop
-- kubectl
-- kind
+- Placeholder: Operating system requirements
+- Placeholder: Container runtime
+- Placeholder: `kubectl`
+- Placeholder: kind or Minikube
+- Placeholder: Basic command-line familiarity
 
----
+## Lab Steps
 
-## Create Cluster
+1. Placeholder: Install required tooling
+2. Placeholder: Create a local cluster
+3. Placeholder: Confirm the Kubernetes context
+4. Placeholder: Inspect cluster nodes
+5. Placeholder: Save any configuration files used for cluster creation
 
-```bash
-kind create cluster --name learning --config kind-config.yaml
-```
+## Verification
 
----
+- Placeholder: `kubectl cluster-info`
+- Placeholder: `kubectl get nodes -o wide`
+- Placeholder: `kubectl config current-context`
 
-## Verify
+## What I Learned
 
-```bash
-kubectl cluster-info
-kubectl get nodes
-```
+- Placeholder: Key takeaways from cluster setup
+- Placeholder: Issues encountered and how they were resolved
+- Placeholder: Commands worth remembering
 
----
+## References
 
-## Learning Outcomes
-
-- Understand what Kind is
-- Understand Kubernetes Nodes
-- Learn how kubectl communicates with the API Server
+- Placeholder: Kubernetes official documentation
+- Placeholder: kind or Minikube documentation
+- Placeholder: Personal notes or supporting articles
