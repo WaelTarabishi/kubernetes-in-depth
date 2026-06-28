@@ -49,10 +49,19 @@ Expected outcomes after completing this lab:
 ## Interview Questions
 
 1. What networking assumptions does Kubernetes make about Pods?
+   - Kubernetes assumes a flat network where every Pod can directly communicate with every other Pod using its IP address without NAT.
+
 2. What role does a CNI plugin play?
+   - A CNI plugin provides Pod networking by assigning Pod IP addresses and enabling communication between Pods across the cluster.
+
 3. How does a Pod resolve a Service name such as `web-svc`?
+   - The Pod sends a DNS query to CoreDNS, which resolves the Service name (`web-svc`) to its ClusterIP.
+
 4. What is the purpose of kube-proxy?
+   - kube-proxy watches Services and EndpointSlices, then configures the node's networking to forward traffic from a Service's ClusterIP to one of its backend Pods.
+
 5. Why is Service-based access usually preferred over direct Pod IP access?
+   - Because Service IPs and DNS names are stable, while Pod IPs are ephemeral and change when Pods are recreated.
 
 ## Common Mistakes
 
