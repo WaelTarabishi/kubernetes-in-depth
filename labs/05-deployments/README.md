@@ -50,10 +50,19 @@ Expected outcomes after completing this lab:
 ## Interview Questions
 
 1. Why are Deployments preferred for stateless applications?
+   - They provide easy scaling, self-healing, and rolling updates without managing Pods manually.
+
 2. What happens internally during a rolling update?
+   - The Deployment creates a new ReplicaSet, gradually starts new Pods, and removes old Pods while keeping the application available.
+
 3. How do Deployments and ReplicaSets relate to each other?
+   - A Deployment manages ReplicaSets, and each ReplicaSet ensures the desired number of Pods are running.
+
 4. What command shows the status of a rollout?
+   - `kubectl rollout status deployment/<deployment-name>`
+
 5. When would you use `kubectl rollout undo`?
+   - To roll back a Deployment to the previous working version after a failed or problematic update.
 
 ## Common Mistakes
 

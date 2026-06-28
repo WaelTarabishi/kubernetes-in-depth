@@ -47,10 +47,19 @@ Expected outcomes after completing this lab:
 ## Interview Questions
 
 1. Why should clients avoid connecting directly to Pod IPs?
+   - Because Pod IPs are ephemeral and can change when Pods are recreated. Services provide a stable endpoint.
+
 2. What is the default Service type in Kubernetes?
+   - `ClusterIP`.
+
 3. What is stored in an Endpoint or EndpointSlice object?
+   - The IP addresses and ports of the healthy Pods that back a Service.
+
 4. When would you use a headless Service?
+   - When clients need to communicate directly with individual Pods instead of using load balancing (for example, StatefulSets like databases).
+
 5. How does a Service find the Pods it should route to?
+   - It uses **label selectors** to match Pods with the appropriate labels.
 
 ## Common Mistakes
 
