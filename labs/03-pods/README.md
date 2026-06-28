@@ -48,10 +48,15 @@ Expected outcomes after completing this lab:
 ## Interview Questions
 
 1. What is a Pod in Kubernetes?
+   - A Pod is the smallest deployable unit in Kubernetes that encapsulates one or more containers sharing the same network and storage.
 2. Why do containers inside the same Pod share a network namespace?
+   - So they can communicate using `localhost` and share the same IP address and ports.
 3. What is the difference between a Pod and a container?
+   - A container runs an application, while a Pod is a Kubernetes object that hosts one or more containers and provides shared networking and storage.
 4. What happens if a standalone Pod is deleted?
+   - It is permanently removed and is **not** recreated automatically because no controller manages it.
 5. Which `kubectl` commands are most useful when a Pod is not starting?
+   - `kubectl get pods`, `kubectl describe pod <pod-name>`, and `kubectl logs <pod-name>`.
 
 ## Common Mistakes
 
