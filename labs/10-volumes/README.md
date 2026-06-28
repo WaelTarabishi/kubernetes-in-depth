@@ -2,76 +2,178 @@
 
 ## Objective
 
-Understand how Kubernetes volumes handle data that should outlive a container process and how persistent storage differs from ephemeral storage.
-
-## Theory
-
-Container filesystems are usually ephemeral. If a container is replaced, local writes inside the container image layer are lost. Kubernetes volumes provide storage that can be shared by containers in a Pod or retained beyond container restarts. `emptyDir` is created when a Pod starts and removed when the Pod is deleted. Persistent storage is usually requested through a `PersistentVolumeClaim` and backed by a `StorageClass` that provisions or connects real storage.
+Understand why container filesystem data is not durable and practice using `emptyDir` and `PersistentVolumeClaim` storage patterns.
 
 ## Prerequisites
 
 - A running Kubernetes cluster
 - `kubectl`
-- Basic understanding of Pods
-- A cluster with a default `StorageClass` if you want to test dynamic persistent storage
+- The `learning` namespace from Lab 02
+- A default `StorageClass` if you want the PVC example to bind dynamically
+
+## Key Concepts
+
+- Container writable layers are usually ephemeral and should not be treated as durable storage.
+- `emptyDir` exists for the lifetime of a Pod and is deleted when the Pod is removed.
+- A `PersistentVolumeClaim` requests persistent storage for a Pod.
+- A `PersistentVolume` is cluster-scoped, while a PVC is namespaced.
+- A `StorageClass` defines how dynamic storage can be provisioned.
+- Access modes and reclaim policies affect how storage is used and cleaned up.
 
 ## Lab Steps
 
-1. Create a namespace for the lab:
-   - `kubectl create namespace volumes-lab`
-2. Start with an `emptyDir` example to observe ephemeral behavior:
-   - Create a Pod that mounts `emptyDir` at `/data`
-   - Write a test file to `/data`
-   - Delete the Pod and confirm the file is gone after recreation
-3. Check whether the cluster has a default storage class:
-   - `kubectl get storageclass`
-4. If a storage class exists, create a `PersistentVolumeClaim` and mount it into a Pod or Deployment.
-5. Write a file to the persistent mount, restart the Pod, and verify that the file still exists.
-6. Compare the outcomes of `emptyDir` and persistent storage in your notes.
+1. Apply the `emptyDir` example.
+   - What we are doing: Create a Pod with temporary shared storage.
+   - Command:
+     ```bash
+     kubectl apply -f manifests/volumes/emptydir-pod.yaml
+     ```
+   - Short explanation: Creates a Pod that mounts an `emptyDir` volume at `/data`.
+
+2. Write data into the `emptyDir` volume.
+   - What we are doing: Store a test file inside the Pod volume.
+   - Command:
+     ```bash
+     kubectl exec emptydir-pod -n learning -- sh -c "echo hello-from-emptydir > /data/message.txt"
+     ```
+   - Short explanation: Writes a file to the Pod-backed temporary volume.
+
+3. Verify the `emptyDir` file exists.
+   - What we are doing: Confirm the file was written.
+   - Command:
+     ```bash
+     kubectl exec emptydir-pod -n learning -- cat /data/message.txt
+     ```
+   - Short explanation: Reads the file from inside the Pod.
+
+4. Delete and recreate the `emptyDir` Pod.
+   - What we are doing: Show that the data is lost when the Pod is removed.
+   - Command:
+     ```bash
+     kubectl delete -f manifests/volumes/emptydir-pod.yaml
+     kubectl apply -f manifests/volumes/emptydir-pod.yaml
+     ```
+   - Short explanation: Recreates the Pod and resets the temporary `emptyDir` storage.
+
+5. Check available storage classes.
+   - What we are doing: See whether the cluster can dynamically provision storage.
+   - Command:
+     ```bash
+     kubectl get storageclass
+     ```
+   - Short explanation: Lists storage classes and usually shows which one is the default.
+
+6. Apply the PVC manifest.
+   - What we are doing: Request persistent storage.
+   - Command:
+     ```bash
+     kubectl apply -f manifests/volumes/pvc.yaml
+     ```
+   - Short explanation: Creates a PVC in the `learning` namespace.
+
+7. Verify the PVC status.
+   - What we are doing: Confirm whether the claim is bound.
+   - Command:
+     ```bash
+     kubectl get pvc -n learning
+     ```
+   - Short explanation: Shows whether the PVC is `Pending` or `Bound`.
+
+8. Apply the Pod that mounts the PVC.
+   - What we are doing: Attach persistent storage to a Pod.
+   - Command:
+     ```bash
+     kubectl apply -f manifests/volumes/pvc-pod.yaml
+     ```
+   - Short explanation: Creates a Pod that mounts the claim at `/data`.
+
+9. Write data to the PVC-backed volume.
+   - What we are doing: Store data that should survive Pod recreation.
+   - Command:
+     ```bash
+     kubectl exec pvc-pod -n learning -- sh -c "echo hello-from-pvc > /data/persistent-message.txt"
+     ```
+   - Short explanation: Writes a file into the persistent volume mounted by the Pod.
+
+10. Recreate the Pod and verify the PVC data remains.
+   - What we are doing: Prove that persistent storage survives Pod replacement.
+   - Command:
+     ```bash
+     kubectl delete -f manifests/volumes/pvc-pod.yaml
+     kubectl apply -f manifests/volumes/pvc-pod.yaml
+     kubectl exec pvc-pod -n learning -- cat /data/persistent-message.txt
+     ```
+   - Short explanation: Recreates the Pod and checks whether the file is still present on the mounted claim.
+
+## YAML Examples
+
+Main manifests for this lab:
+
+- `manifests/volumes/emptydir-pod.yaml`
+- `manifests/volumes/pvc.yaml`
+- `manifests/volumes/pvc-pod.yaml`
+
+Small example:
+
+```yaml
+volumes:
+  - name: app-storage
+    persistentVolumeClaim:
+      claimName: app-pvc
+```
 
 ## Verification
 
-- `kubectl get pv`
-- `kubectl get pvc -n volumes-lab`
-- `kubectl get storageclass`
-- `kubectl exec -it <pod-name> -n volumes-lab -- ls /data`
+```bash
+kubectl get storageclass
+kubectl get pvc -n learning
+kubectl get pv
+kubectl exec emptydir-pod -n learning -- ls /data
+kubectl exec pvc-pod -n learning -- ls /data
+```
 
-## What I Learned
+## Expected Output
 
-Expected outcomes after completing this lab:
+- The `emptyDir` file should disappear after the Pod is deleted and recreated.
+- The PVC should move to `Bound` if the cluster can provision storage.
+- The file written through the PVC-backed Pod should still exist after the Pod is recreated.
+- `kubectl get pv` should show the persistent volume backing the claim when one is provisioned.
 
-- I can explain why container-local filesystem state is usually not enough.
-- I understand the difference between ephemeral volumes and persistent storage.
-- I know the roles of `PersistentVolume`, `PersistentVolumeClaim`, and `StorageClass`.
+## Troubleshooting
+
+- PVC stays `Pending`:
+  The cluster may not have a matching `StorageClass`, dynamic provisioner, or compatible access mode.
+- Pod stays `Pending` after mounting a PVC:
+  Check whether the claim is still unbound or references a missing storage class.
+- Data disappears from `emptyDir`:
+  That is expected after Pod deletion because `emptyDir` is Pod-scoped.
+- No default `StorageClass` exists:
+  Use a cluster that supports dynamic provisioning or create storage manually before retrying.
+
+## Cleanup
+
+```bash
+kubectl delete -f manifests/volumes/pvc-pod.yaml
+kubectl delete -f manifests/volumes/pvc.yaml
+kubectl delete -f manifests/volumes/emptydir-pod.yaml
+```
+
+## Key Takeaways
+
+- Container-local writes are usually not durable enough for important data.
+- `emptyDir` is temporary Pod storage.
+- PVCs are the standard way for Pods to request persistent storage.
+- `StorageClass` controls how storage is provisioned.
 
 ## Interview Questions
 
 1. Why is container filesystem data usually not considered durable?
-   - Data written inside a container's normal writable filesystem is tied to that container's lifecycle. If the container crashes, is stopped, recreated, or rescheduled, Kubernetes can start it again with a clean filesystem state, so files created during the previous run can be lost. Kubernetes documentation describes on-disk files in a container as ephemeral and recommends volumes when data must survive restarts or replacement.
-
-2. What is the difference between `emptyDir` and a `PersistentVolumeClaim`?
-   - `emptyDir` is temporary Pod-level storage. It is created when the Pod is assigned to a node, can be shared by containers in that same Pod, survives container crashes, but is deleted permanently when the Pod is removed from the node.
-   - A `PersistentVolumeClaim` is a request for persistent storage. The PVC asks Kubernetes for storage with a certain size, access mode, and optionally a `StorageClass`; Kubernetes then binds it to a `PersistentVolume`. A PV has a lifecycle independent of any individual Pod.
-
-3. What does a `StorageClass` do?
-   - A `StorageClass` defines a type or "class" of storage that the cluster offers, such as fast SSD, standard disk, encrypted storage, or backup-enabled storage. It tells Kubernetes which provisioner to use and what parameters or reclaim policy to apply when dynamically creating a `PersistentVolume` for a PVC.
-
-4. When is a `PersistentVolume` cluster-scoped?
-   - A `PersistentVolume` is always cluster-scoped in Kubernetes. It is a cluster resource, similar to a node, and is not created inside a namespace. The `PersistentVolumeClaim` is the namespaced object; the PV itself belongs to the cluster and can be bound to a PVC.
-
+   Because it is tied to the container lifecycle and can disappear when the container or Pod is replaced.
+2. What is the difference between emptyDir and a PersistentVolumeClaim?
+   `emptyDir` is temporary Pod storage, while a PVC requests persistent storage that can outlive a Pod.
+3. What does a StorageClass do?
+   It defines how storage should be provisioned and what properties it should have.
+4. When is a PersistentVolume cluster-scoped?
+   A PersistentVolume is always cluster-scoped.
 5. Why might a Pod remain pending when using a PVC?
-   - A Pod can remain `Pending` if the PVC cannot be bound to usable storage. Common causes include no matching PV, requested size too large, wrong access mode, wrong or missing `StorageClass`, dynamic provisioner failure, or topology and zone mismatch. Kubernetes says PVCs remain unbound indefinitely if no matching volume exists, and Pods use claims only after Kubernetes finds the bound volume.
-   - Another common cause is `StorageClass` `volumeBindingMode`: with `Immediate`, storage may be provisioned without considering where the Pod can run, which can make the Pod unschedulable; with `WaitForFirstConsumer`, binding waits until a Pod uses the PVC so topology can be considered.
-
-## Common Mistakes
-
-- Writing important data only to the container filesystem
-- Assuming a local learning cluster always has a dynamic provisioner installed
-- Ignoring access modes and storage class requirements
-- Expecting `emptyDir` data to survive Pod deletion
-
-## References
-
-- Volumes: https://kubernetes.io/docs/concepts/storage/volumes/
-- Persistent Volumes: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
-- Storage Classes: https://kubernetes.io/docs/concepts/storage/storage-classes/
+   The claim may be unbound because of missing storage, wrong access mode, or storage class issues.
