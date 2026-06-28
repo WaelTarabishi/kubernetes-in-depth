@@ -2,76 +2,146 @@
 
 ## Objective
 
-Explore the Kubernetes networking model by testing Pod-to-Pod, Pod-to-Service, and DNS-based communication inside the cluster.
-
-## Theory
-
-Kubernetes assumes a flat cluster network where Pods can reach each other without NAT. A Container Network Interface (CNI) plugin implements this model. Service discovery is usually backed by CoreDNS, which gives Services stable DNS names. Traffic to a Service is translated to backend Pods by kube-proxy or a replacement data plane, depending on the cluster implementation.
+Explore Pod-to-Pod communication, Pod-to-Service communication, Service DNS, and basic Kubernetes networking troubleshooting.
 
 ## Prerequisites
 
 - A running Kubernetes cluster
 - `kubectl`
+- The `learning` namespace from Lab 02
 - Basic understanding of Pods and Services
-- Two simple workloads or one workload plus a temporary debug Pod
+
+## Key Concepts
+
+- Kubernetes expects a flat network where Pods can reach each other.
+- Pod-to-Pod communication uses Pod IP addresses directly.
+- Pod-to-Service communication uses a stable Service IP or DNS name.
+- CoreDNS provides DNS records for Services and Pods.
+- East-west traffic is internal cluster traffic, while north-south traffic enters or leaves the cluster.
 
 ## Lab Steps
 
-1. Create a namespace for the lab:
-   - `kubectl create namespace networking-lab`
-2. Create a backend Deployment and Service:
-   - `kubectl create deployment web --image=nginx:1.25 -n networking-lab`
-   - `kubectl expose deployment web --port=80 --target-port=80 --name=web-svc -n networking-lab`
-3. Launch a temporary debug Pod:
-   - `kubectl run toolbox --image=busybox:1.36 --restart=Never -it --rm -n networking-lab -- sh`
-4. From the debug Pod, test DNS and Service access:
-   - `nslookup web-svc`
-   - `wget -qO- http://web-svc`
-5. Inspect Pod IPs and test direct Pod-to-Pod communication if needed:
-   - `kubectl get pods -o wide -n networking-lab`
-6. Record how DNS, Service abstraction, and Pod IPs differ during the tests.
+1. Apply the networking demo workload.
+   - What we are doing: Create a backend Deployment and Service for connectivity tests.
+   - Command:
+     ```bash
+     kubectl apply -f manifests/networking/network-test-deployment.yaml
+     kubectl apply -f manifests/networking/network-test-service.yaml
+     ```
+   - Short explanation: Creates a simple nginx backend and a Service for internal traffic testing.
+
+2. Apply the test client Pod.
+   - What we are doing: Create a temporary shell Pod for DNS and HTTP checks.
+   - Command:
+     ```bash
+     kubectl apply -f manifests/networking/test-client-pod.yaml
+     ```
+   - Short explanation: Starts a BusyBox Pod that can run `nslookup`, `wget`, and other basic checks.
+
+3. Verify Pod IP addresses.
+   - What we are doing: Observe Pod-to-Pod addressing.
+   - Command:
+     ```bash
+     kubectl get pods -n learning -o wide
+     ```
+   - Short explanation: Displays Pod IP addresses and node placement.
+
+4. Test Pod-to-Service communication.
+   - What we are doing: Access the backend through the Service name.
+   - Command:
+     ```bash
+     kubectl exec -it test-client -n learning -- wget -qO- http://network-test-service
+     ```
+   - Short explanation: Sends an HTTP request from one Pod to a Service using cluster DNS.
+
+5. Test Service DNS resolution.
+   - What we are doing: Resolve the Service name inside the cluster.
+   - Command:
+     ```bash
+     kubectl exec -it test-client -n learning -- nslookup network-test-service
+     ```
+   - Short explanation: Confirms CoreDNS can resolve the Service name to its ClusterIP.
+
+6. Compare Pod IP access and Service access.
+   - What we are doing: Call the backend Pod directly as a learning exercise.
+   - Command:
+     ```bash
+     kubectl get pods -n learning -l app=network-test -o wide
+     ```
+   - Short explanation: Retrieves the backend Pod IP so you can compare direct Pod access with Service-based access.
+
+7. Inspect DNS and networking components.
+   - What we are doing: Check the cluster DNS service when resolution fails.
+   - Command:
+     ```bash
+     kubectl get pods -n kube-system | findstr coredns
+     ```
+   - Short explanation: Verifies that CoreDNS is running in the cluster.
+
+## YAML Examples
+
+Main manifests for this lab:
+
+- `manifests/networking/network-test-deployment.yaml`
+- `manifests/networking/network-test-service.yaml`
+- `manifests/networking/test-client-pod.yaml`
+
+Small example:
+
+```yaml
+metadata:
+  name: network-test-service
+  namespace: learning
+```
 
 ## Verification
 
-- `kubectl get pods -o wide -n networking-lab`
-- `kubectl get svc,endpoints -n networking-lab`
-- `kubectl exec -n networking-lab deploy/web -- nslookup web-svc`
-- `kubectl get pods -n kube-system | findstr coredns`
+```bash
+kubectl get pods -n learning -o wide
+kubectl get svc,endpoints -n learning
+kubectl exec test-client -n learning -- nslookup network-test-service
+kubectl exec test-client -n learning -- wget -qO- http://network-test-service
+```
 
-## What I Learned
+## Expected Output
 
-Expected outcomes after completing this lab:
+- `kubectl get pods -n learning -o wide` should show distinct Pod IP addresses.
+- `nslookup network-test-service` should resolve to the Service ClusterIP.
+- `wget -qO- http://network-test-service` should return the nginx default page.
+- `kubectl get svc,endpoints -n learning` should show a Service with matching backend endpoints.
 
-- I can describe the flat networking model Kubernetes expects.
-- I understand how DNS and Services simplify communication between workloads.
-- I know where to start when basic cluster connectivity fails.
+## Troubleshooting
+
+- `nslookup` fails:
+  Check CoreDNS Pods in `kube-system` and confirm the test Pod is running.
+- HTTP request fails:
+  Verify the Service selector matches the backend Pod labels.
+- Service has no endpoints:
+  Check `kubectl get endpoints -n learning`.
+- Direct Pod IP works but Service DNS does not:
+  Focus on DNS or Service configuration rather than the application container.
+
+## Cleanup
+
+```bash
+kubectl delete -f manifests/networking/test-client-pod.yaml
+kubectl delete -f manifests/networking/network-test-service.yaml
+kubectl delete -f manifests/networking/network-test-deployment.yaml
+```
+
+## Key Takeaways
+
+- Pod-to-Pod and Pod-to-Service traffic are both part of normal cluster networking.
+- Service DNS reduces the need to track changing Pod IPs.
+- CoreDNS is a common first place to investigate when Service names do not resolve.
 
 ## Interview Questions
 
-1. What networking assumptions does Kubernetes make about Pods?
-   - Kubernetes assumes a flat network where every Pod can directly communicate with every other Pod using its IP address without NAT.
-
-2. What role does a CNI plugin play?
-   - A CNI plugin provides Pod networking by assigning Pod IP addresses and enabling communication between Pods across the cluster.
-
-3. How does a Pod resolve a Service name such as `web-svc`?
-   - The Pod sends a DNS query to CoreDNS, which resolves the Service name (`web-svc`) to its ClusterIP.
-
-4. What is the purpose of kube-proxy?
-   - kube-proxy watches Services and EndpointSlices, then configures the node's networking to forward traffic from a Service's ClusterIP to one of its backend Pods.
-
-5. Why is Service-based access usually preferred over direct Pod IP access?
-   - Because Service IPs and DNS names are stable, while Pod IPs are ephemeral and change when Pods are recreated.
-
-## Common Mistakes
-
-- Treating Pod IPs as permanent addresses
-- Forgetting that DNS failures may come from CoreDNS or network policy issues
-- Testing connectivity without checking whether the Service has endpoints
-- Assuming every cluster uses the same network plugin or traffic path
-
-## References
-
-- The Kubernetes Network Model: https://kubernetes.io/docs/concepts/services-networking/
-- DNS for Services and Pods: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
-- Network Plugins: https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/
+1. What is east-west traffic in Kubernetes?
+   It is traffic moving between workloads inside the cluster.
+2. What is north-south traffic in Kubernetes?
+   It is traffic entering or leaving the cluster from external clients.
+3. Why is Service DNS preferred over direct Pod IP access?
+   Service names stay stable even when Pods are recreated.
+4. What component commonly resolves Service names inside the cluster?
+   CoreDNS.

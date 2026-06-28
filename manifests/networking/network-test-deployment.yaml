@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-test-deployment
+  namespace: learning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-test
+  template:
+    metadata:
+      labels:
+        app: network-test
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
