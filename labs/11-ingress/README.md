@@ -6,10 +6,9 @@ Learn how an Ingress routes HTTP traffic to Services and why an Ingress controll
 
 ## Prerequisites
 
-- A running Kubernetes cluster
+- A running `kind` Kubernetes cluster
 - `kubectl`
 - The `learning` namespace from Lab 02
-- An ingress controller installed or enabled in the cluster
 - Basic understanding of Deployments and Services
 
 ## Key Concepts
@@ -30,13 +29,13 @@ Learn how an Ingress routes HTTP traffic to Services and why an Ingress controll
    - Short explanation: Shows whether an ingress controller is running anywhere in the cluster.
 
 2. Install or enable an ingress controller if needed.
-   - What we are doing: Set up a controller for a local learning cluster.
+   - What we are doing: Install the NGINX Ingress controller for a `kind` cluster.
    - Command:
      ```bash
-     minikube addons enable ingress
+     kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+     kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
      ```
-     or for kind, follow the ingress-nginx installation guide for kind.
-   - Short explanation: Ingress resources do nothing by themselves until a controller is installed.
+   - Short explanation: Ingress resources do nothing by themselves until a controller is installed and running.
 
 3. Apply the backend Deployment.
    - What we are doing: Create the nginx workload that will receive HTTP traffic.
@@ -68,26 +67,35 @@ Learn how an Ingress routes HTTP traffic to Services and why an Ingress controll
      ```bash
      kubectl get ingress -n learning
      kubectl describe ingress nginx-ingress -n learning
+     kubectl get svc -n ingress-nginx
      ```
-   - Short explanation: Shows the host, path, backend Service, and controller status information.
+   - Short explanation: Shows the host, path, backend Service, and the ingress controller Service.
 
-7. Add local host resolution if required.
-   - What we are doing: Make `k8s.local` resolve to the ingress endpoint during local testing.
+7. Forward local traffic to the ingress controller.
+   - What we are doing: Expose the ingress controller on your machine for testing from a standard `kind` cluster.
+   - Command:
+     ```bash
+     kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80
+     ```
+   - Short explanation: This maps local port `8080` to the ingress controller's HTTP port inside the cluster.
+
+8. Add local host resolution if required.
+   - What we are doing: Make `k8s.local` resolve locally if you want to test in a browser as well.
    - Command:
      ```text
      Add an entry such as 127.0.0.1 k8s.local to your hosts file if your local setup needs it.
      ```
-   - Short explanation: Local clusters often need a manual hosts file entry for custom hostnames.
+   - Short explanation: This is optional for `curl` when you send the `Host` header manually, but useful for browser testing.
 
-8. Test the route with `curl`.
+9. Test the route with `curl`.
    - What we are doing: Send an HTTP request using the expected `Host` header.
    - Command:
      ```bash
-     curl -H "Host: k8s.local" http://127.0.0.1/
+     curl -H "Host: k8s.local" http://127.0.0.1:8080/
      ```
    - Short explanation: Verifies that the Ingress routes traffic to the backend Service.
 
-9. Review path-based routing.
+10. Review path-based routing.
    - What we are doing: Understand how the same Ingress could route different URL paths to different Services.
    - Command:
      ```bash
@@ -115,20 +123,23 @@ rules:
 ```bash
 kubectl get deploy,svc,ingress -n learning
 kubectl describe ingress nginx-ingress -n learning
-curl -H "Host: k8s.local" http://127.0.0.1/
+kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80
+curl -H "Host: k8s.local" http://127.0.0.1:8080/
 ```
 
 ## Expected Output
 
 - `kubectl get ingress -n learning` should show an Ingress rule for `k8s.local`.
 - `kubectl describe ingress nginx-ingress -n learning` should show the backend Service and path `/`.
-- `curl -H "Host: k8s.local" http://127.0.0.1/` should return the nginx default page when the controller is reachable.
+- `curl -H "Host: k8s.local" http://127.0.0.1:8080/` should return the nginx default page when the controller is reachable.
 - The Deployment and Service should both be available in the `learning` namespace.
 
 ## Troubleshooting
 
 - No ingress controller:
-  Install or enable one first, otherwise the Ingress resource will not route traffic.
+  Install `ingress-nginx` first, otherwise the Ingress resource will not route traffic.
+- Port-forward not running:
+  Keep `kubectl port-forward -n ingress-nginx service/ingress-nginx-controller 8080:80` running in a separate terminal while testing.
 - Wrong service name:
   Make sure the backend Service name in the Ingress matches `nginx-ingress-service`.
 - Wrong service port:
